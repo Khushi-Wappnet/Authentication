@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'authflow',
     'drf_yasg',
+    'projectmanagement',
 ]
 
 MIDDLEWARE = [
