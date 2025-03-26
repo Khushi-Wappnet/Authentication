@@ -1,7 +1,9 @@
 from django.urls import path
 from .views import (
     RegisterView, OTPVerificationView, LoginView,
-    ForgotPasswordView, ResetPasswordView
+    ForgotPasswordView, ResetPasswordView, RoleView, 
+    PermissionView, UserManagementView,RolePermissionListView, 
+    RolePermissionDeleteView
 )
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -24,4 +26,9 @@ urlpatterns = [
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot_password'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset_password'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('roles/', RoleView.as_view(), name='roles'),
+    path('permissions/', PermissionView.as_view(), name='permissions'),
+    path('users/', UserManagementView.as_view(), name='users'),
+    path('role-permissions/', RolePermissionListView.as_view(), name='role_permissions'),
+    path('role-permissions/<int:pk>/', RolePermissionDeleteView.as_view(), name='delete_role_permission'),
 ]

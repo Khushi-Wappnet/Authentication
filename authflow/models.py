@@ -2,9 +2,6 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
 class CustomUserManager(BaseUserManager):
-    """
-    Custom manager for CustomUser to handle user creation with email instead of username.
-    """
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('The Email field must be set')
@@ -26,16 +23,38 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
+class Role(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+class Permission(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+class RolePermission(models.Model):
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="permissions")
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="roles")
+
+    class Meta:
+        unique_together = ('role', 'permission')
+
+    def __str__(self):
+        return f"{self.role.name} - {self.permission.name}"
+
 class CustomUser(AbstractUser):
-    """
-    Custom user model that uses email instead of username as the unique identifier.
-    """
-    username = None  # Remove the username field
+    username = models.CharField(max_length=150, unique=True)  # Add username field
     email = models.EmailField(unique=True)  # Use email as the unique identifier
     phone_number = models.CharField(max_length=15, unique=True)
     is_active = models.BooleanField(default=False)  # Override default to False
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
 
-    USERNAME_FIELD = 'email'  # Set email as the unique identifier
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'phone_number']  # Fields required for superuser creation
+    USERNAME_FIELD = 'username'  # Set username as the unique identifier
+    REQUIRED_FIELDS = ['email', 'first_name', 'last_name', 'phone_number']  # Fields required for superuser creation
 
     objects = CustomUserManager()  # Use the custom manager

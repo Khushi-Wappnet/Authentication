@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser,Role, Permission,RolePermission
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,3 +49,33 @@ class ResetPasswordSerializer(serializers.Serializer):
         if not CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("No user is associated with this email.")
         return value
+    
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['id', 'name', 'description']
+
+class PermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = ['id', 'name', 'description']
+
+class UserManagementSerializer(serializers.ModelSerializer):
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all())  # Use PrimaryKeyRelatedField for writable role field
+
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'role', 'is_active']
+
+    def create(self, validated_data):
+        # Extract the role from validated_data
+        role = validated_data.pop('role', None)
+        user = CustomUser.objects.create(**validated_data)  # Create the user
+        user.role = role  # Assign the role
+        user.save()  # Save the user with the role
+        return user
+    
+class RolePermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RolePermission
+        fields = ['id', 'role', 'permission']

@@ -1,14 +1,16 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.generics import ListCreateAPIView, DestroyAPIView
 from rest_framework import status
 from django.utils.timezone import now, timedelta
 from django.core.mail import send_mail
 from rest_framework.authtoken.models import Token
 from drf_yasg.utils import swagger_auto_schema
-from .models import CustomUser
+from .models import CustomUser, Role, Permission,RolePermission
 from .serializers import (
     RegisterSerializer, LoginSerializer, OTPVerificationSerializer,
-    ForgotPasswordSerializer, ResetPasswordSerializer
+    ForgotPasswordSerializer, ResetPasswordSerializer,RoleSerializer,
+    PermissionSerializer, UserManagementSerializer,RolePermissionSerializer
 )
 import random
 
@@ -123,3 +125,68 @@ class ResetPasswordView(APIView):
                 return Response({'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': 'OTP not found for this email.'}, status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class RoleView(APIView):
+    @swagger_auto_schema(responses={200: RoleSerializer(many=True)})
+    def get(self, request):
+        roles = Role.objects.all()
+        serializer = RoleSerializer(roles, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(request_body=RoleSerializer, responses={201: RoleSerializer})
+    def post(self, request):
+        serializer = RoleSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PermissionView(APIView):
+    @swagger_auto_schema(responses={200: PermissionSerializer(many=True)})
+    def get(self, request):
+        permissions = Permission.objects.all()
+        serializer = PermissionSerializer(permissions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(request_body=PermissionSerializer, responses={201: PermissionSerializer})
+    def post(self, request):
+        serializer = PermissionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserManagementView(APIView):
+    @swagger_auto_schema(responses={200: UserManagementSerializer(many=True)})
+    def get(self, request):
+        users = CustomUser.objects.all()
+        serializer = UserManagementSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(request_body=UserManagementSerializer, responses={201: UserManagementSerializer})
+    def post(self, request):
+        serializer = UserManagementSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class RolePermissionListView(ListCreateAPIView):
+    """
+    View to list and assign permissions to a role.
+    """
+    queryset = RolePermission.objects.all()
+    serializer_class = RolePermissionSerializer
+
+    def get_queryset(self):
+        role_id = self.request.query_params.get('role')
+        if role_id:
+            return RolePermission.objects.filter(role_id=role_id)
+        return super().get_queryset()
+
+class RolePermissionDeleteView(DestroyAPIView):
+    """
+    View to remove a permission from a role.
+    """
+    queryset = RolePermission.objects.all()
+    serializer_class = RolePermissionSerializer
