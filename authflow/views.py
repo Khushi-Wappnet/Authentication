@@ -13,6 +13,7 @@ from .serializers import (
     PermissionSerializer, UserManagementSerializer,RolePermissionSerializer
 )
 import random
+from drf_yasg import openapi
 
 otp_storage = {}  # Temporary in-memory storage for OTPs
 
@@ -170,6 +171,41 @@ class UserManagementView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the user'),
+                'role': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the role'),
+            },
+            required=['id', 'role']
+        ),
+        responses={200: UserManagementSerializer}
+    )
+    def patch(self, request):
+        user_id = request.data.get('id')  # Get the user ID from the request
+        role_id = request.data.get('role')  # Get the role ID from the request
+
+        if not user_id or not role_id:
+            return Response({'error': 'User ID and Role ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(id=user_id)  # Fetch the user by ID
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            role = Role.objects.get(id=role_id)  # Fetch the role by ID
+        except Role.DoesNotExist:
+            return Response({'error': 'Role not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Update the user's role
+        user.role = role
+        user.save()
+
+        serializer = UserManagementSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 class RolePermissionListView(ListCreateAPIView):
     """
