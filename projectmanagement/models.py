@@ -48,6 +48,12 @@ class Task(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES)
     due_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Not Started')
+    dependency = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependent_tasks')
+
+    def save(self, *args, **kwargs):
+        if self.dependency and self.dependency.status != 'Completed':
+            raise ValueError(f"Task '{self.title}' cannot start until its dependency '{self.dependency.title}' is completed.")
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} - {self.project.name}"

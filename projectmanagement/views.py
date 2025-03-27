@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Project, ProjectTeamMember, Milestone, Task
-from .serializers import ProjectSerializer, ProjectTeamMemberSerializer, MilestoneSerializer, TaskSerializer
+from .serializers import ProjectSerializer, ProjectTeamMemberSerializer, MilestoneSerializer, TaskSerializer,ScheduleSerializer
 from django.core.mail import send_mail
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -76,23 +76,50 @@ class TaskView(APIView):
     def post(self, request):
         serializer = TaskSerializer(data=request.data)
         if serializer.is_valid():
-            task = serializer.save()
-            # Send email notification to the assignee
-            if task.assignee:
-                send_mail(
-                    'New Task Assigned',
-                    f"You have been assigned a new task: {task.title}",
-                    'noreply@example.com',
-                    [task.assignee.email]
-                )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                task = serializer.save()
+                # Validate dependency logic
+                if task.dependency and task.dependency.status != 'Completed':
+                    raise ValueError(
+                        f"Task '{task.title}' cannot start until its dependency '{task.dependency.title}' is completed."
+                    )
+                # Send email notification to the assignee
+                if task.assignee:
+                    send_mail(
+                        'New Task Assigned',
+                        f"You have been assigned a new task: {task.title}",
+                        'noreply@example.com',
+                        [task.assignee.email]
+                    )
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except ValueError as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(request_body=TaskSerializer, responses={200: TaskSerializer})
     def patch(self, request, pk):
-        task = Task.objects.get(pk=pk)
+        try:
+            task = Task.objects.get(pk=pk)
+        except Task.DoesNotExist:
+            return Response({'error': 'Task not found.'}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = TaskSerializer(task, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            try:
+                updated_task = serializer.save()
+                # Validate dependency logic
+                if updated_task.dependency and updated_task.dependency.status != 'Completed':
+                    raise ValueError(
+                        f"Task '{updated_task.title}' cannot start until its dependency '{updated_task.dependency.title}' is completed."
+                    )
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except ValueError as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ScheduleView(APIView):
+    @swagger_auto_schema(responses={200: ScheduleSerializer(many=True)})
+    def get(self, request):
+        projects = Project.objects.prefetch_related('tasks', 'milestones').all()
+        serializer = ScheduleSerializer(projects, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

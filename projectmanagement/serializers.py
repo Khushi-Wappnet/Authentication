@@ -25,4 +25,12 @@ class MilestoneSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
-        fields = ['id', 'project', 'title', 'description', 'assignee', 'priority', 'due_date', 'status']
+        fields = ['id', 'project', 'title', 'description', 'assignee', 'priority', 'due_date', 'status', 'dependency']
+
+class ScheduleSerializer(serializers.ModelSerializer):
+    tasks = TaskSerializer(many=True, read_only=True)
+    milestones = MilestoneSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Project
+        fields = ['id', 'name', 'start_date', 'end_date', 'tasks', 'milestones']
