@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'projectmanagement',
     'django_celery_beat',
+    'resourcemanagement',
 ]
 
 MIDDLEWARE = [
@@ -77,7 +78,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Authentication.wsgi.application'
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
