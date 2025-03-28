@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'projectmanagement',
     'django_celery_beat',
     'resourcemanagement',
+    'reporting',
 ]
 
 MIDDLEWARE = [

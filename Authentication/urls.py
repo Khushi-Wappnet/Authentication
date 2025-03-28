@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/auth/', include('authflow.urls')),
     path('api/project-management/', include('projectmanagement.urls')),
     path('api/resource-management/', include('resourcemanagement.urls')),
+    path('api/reporting/', include('reporting.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
