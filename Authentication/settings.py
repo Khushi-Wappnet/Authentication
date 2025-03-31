@@ -34,6 +34,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -150,3 +151,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Project Management Admin",
+    "site_header": "Project Management",
+    "site_brand": "Project Management",
+    "welcome_sign": "Welcome to the Project Management Admin Panel",
+    "copyright": "Wappnet Systems",
+    "search_model": "auth.User",
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"app": "auth"},
+        {"app": "projectmanagement"},
+        {"app": "resourcemanagement"},
+        {"app": "reporting"},
+    ],
+}
