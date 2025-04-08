@@ -33,6 +33,11 @@ class ResourceAllocation(models.Model):
         if self.allocated_quantity > self.resource.total_quantity:
             raise ValueError(f"Cannot allocate more than available quantity for {self.resource.name}.")
         
+    def save(self, *args, **kwargs):
+        # Call full_clean to enforce validation
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 class Comment(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)

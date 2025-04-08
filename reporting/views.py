@@ -7,8 +7,10 @@ from resourcemanagement.models import ResourceAllocation
 from .serializers import ProjectReportSerializer, ResourceUsageSerializer
 import csv
 from django.http import HttpResponse
-from io import StringIO
+from io import BytesIO
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.http import JsonResponse
@@ -27,12 +29,12 @@ class ResourceUsageReportView(APIView):
 
 
 class ExportReportView(APIView):
-    def get(self, request, format):
+    def get(self, request, export_format):
         # Debugging: Log the received format
-        print(f"DEBUG: Export format received: {format}")
+        print(f"DEBUG: Export format received: {export_format}")
 
         # Validate the format parameter
-        if format not in ['csv', 'pdf']:
+        if export_format not in ['csv', 'pdf']:
             print("DEBUG: Invalid format received")  # Debugging
             return Response({'error': 'Invalid format. Use "csv" or "pdf".'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -46,9 +48,9 @@ class ExportReportView(APIView):
             return Response({'error': 'Failed to fetch project data.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Handle CSV or PDF export
-        if format == 'csv':
+        if export_format == 'csv':
             return self.export_csv(serializer.data)
-        elif format == 'pdf':
+        elif export_format == 'pdf':
             return self.export_pdf(serializer.data)
 
     def export_csv(self, data):
@@ -78,22 +80,35 @@ class ExportReportView(APIView):
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = 'attachment; filename="project_report.pdf"'
 
-            buffer = StringIO()
-            pdf = canvas.Canvas(buffer)
+            buffer = BytesIO()
+            pdf = canvas.Canvas(buffer, pagesize=letter)
 
             # Write PDF content
-            pdf.drawString(100, 800, "Project Report")
-            y = 750
+            pdf.setFont("Helvetica-Bold", 16)
+            pdf.drawString(1*inch, 10*inch, "Project Report")
+            
+            pdf.setFont("Helvetica", 12)
+            y = 9*inch
             for project in data:
-                pdf.drawString(50, y, f"Project: {project['name']}")
-                pdf.drawString(50, y - 20, f"Start Date: {project['start_date']}, End Date: {project['end_date']}")
-                pdf.drawString(50, y - 40, f"Completed Tasks: {project['completed_tasks']}, Overdue Tasks: {project['overdue_tasks']}")
-                y -= 80
+                # Project name
+                pdf.drawString(1*inch, y, f"Project: {str(project['name'])}")
+                y -= 0.5*inch
+                
+                # Dates
+                pdf.drawString(1*inch, y, f"Start Date: {str(project['start_date'])}")
+                pdf.drawString(4*inch, y, f"End Date: {str(project['end_date'])}")
+                y -= 0.5*inch
+                
+                # Task counts
+                pdf.drawString(1*inch, y, f"Completed Tasks: {str(project['completed_tasks'])}")
+                pdf.drawString(4*inch, y, f"Overdue Tasks: {str(project['overdue_tasks'])}")
+                y -= 1*inch
 
-                # Prevent content from overflowing the page
-                if y < 50:
+                # Add a new page if we're running out of space
+                if y < 1*inch:
                     pdf.showPage()
-                    y = 750
+                    y = 9*inch
+                    pdf.setFont("Helvetica", 12)
 
             pdf.save()
             buffer.seek(0)
